@@ -1,297 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chess Coach Training Room</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #161512;
-            color: #bababa;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
-            max-width: 1100px;
-            width: 100%;
-        }
-        .board-section {
-            flex: 1.2;
-            min-width: 320px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .grid-board {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            width: 100%;
-            max-width: 460px;
-            aspect-ratio: 1;
-            border: 4px solid #262421;
-            border-radius: 3px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-        }
-        .square {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            cursor: pointer;
-            user-select: none;
-        }
-        .square.light { background-color: #f0d9b5; }
-        .square.dark { background-color: #b58863; }
-        .square.selected { background-color: rgba(130, 151, 105, 0.7) !important; }
-        
-        .piece-img {
-            width: 90%;
-            height: 90%;
-            object-fit: contain;
-            pointer-events: none;
-        }
+<meta charset="UTF-8">
+<title>AI Chess Coach</title>
+<style>
+body {
+  background: #1a1a1a;
+  color: #fff;
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+}
+.grid-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: 440px;
+  height: 440px;
+  border: 4px solid #333;
+}
+.square {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+  cursor: pointer;
+  user-select: none;
+}
+.light { background: #f0d9b5; }
+.dark { background: #b58863; }
+.selected { background: #7a9a60 !important; }
 
-        .coach-section {
-            flex: 1;
-            min-width: 320px;
-            background-color: #1e1e1c;
-            border: 1px solid #2d2b28;
-            border-radius: 8px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        .engine-status {
-            background-color: #262421;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            margin-bottom: 15px;
-            color: #bababa;
-            display: flex;
-            justify-content: space-between;
-        }
-        .chat-box {
-            flex: 1;
-            min-height: 280px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #2d2b28;
-            border-radius: 6px;
-            padding: 15px;
-            background-color: #161512;
-            margin-bottom: 15px;
-        }
-        .msg { margin-bottom: 12px; line-height: 1.4; }
-        .msg.coach { color: #bf8142; }
-        .msg.player { color: #4fa3a5; }
-        
-        .controls {
-            display: flex;
-            gap: 8px;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 12px;
-            border-radius: 4px;
-            border: 1px solid #3d3a35;
-            background-color: #262421;
-            color: #fff;
-            font-size: 1em;
-        }
-        button {
-            padding: 12px 18px;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .btn-send { background-color: #e69138; color: white; }
-        .btn-mic { background-color: #45818e; color: white; }
-        .btn-mic.listening { background-color: #cc0000; }
-    </style>
+.piece {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+.white-piece {
+  color: #ffffff;
+  text-shadow: 
+    -2px -2px 0 #000,
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000;
+}
+.black-piece {
+  color: #111111;
+  text-shadow: 
+    -2px -2px 0 #fff,
+     2px -2px 0 #fff,
+    -2px  2px 0 #fff,
+     2px  2px 0 #fff;
+}
+
+.coach-section {
+  width: 350px;
+  background: #262626;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.chat-box {
+  height: 300px;
+  background: #121212;
+  overflow-y: auto;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+.controls {
+  display: flex;
+  gap: 5px;
+}
+input {
+  flex: 1;
+  padding: 10px;
+  background: #333;
+  color: #fff;
+  border: none;
+}
+button {
+  padding: 10px;
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+</style>
 </head>
 <body>
 
 <div class="container">
-    <div class="board-section">
-        <h2>🧠 AI Coach Training Room</h2>
-        <div id="htmlBoard" class="grid-board"></div>
-        <p style="color: #666; margin-top: 12px; font-size: 0.9em;">Click your piece, then click the destination square to move.</p>
+  <div>
+    <h2>🧠 AI Chess Coach</h2>
+    <div id="board" class="grid-board"></div>
+  </div>
+  <div class="coach-section">
+    <h3>💬 Assistant Coach</h3>
+    <div id="chat" class="chat-box">
+      <p style="color:#81c784">
+        <strong>Coach:</strong> Solid colors loaded. Move white!
+      </p>
     </div>
-
-    <div class="coach-section">
-        <h3>💬 Assistant Coach</h3>
-        <div class="engine-status">
-            <span>Coach Mind: <strong>Active</strong></span>
-            <span id="posEval">Eval: +0.15</span>
-        </div>
-        <div class="chat-box" id="chatBox">
-            <div class="msg coach"><strong>Coach:</strong> UI updated with official Lichess graphics! Propose an idea or try making a development move.</div>
-        </div>
-        <div class="controls">
-            <input type="text" id="playerInput" placeholder="Type your idea or click Mic...">
-            <button class="btn-mic" id="micBtn" onclick="toggleVoice()">🎙️</button>
-            <button class="btn-send" onclick="sendPlayerIdea()">Explain</button>
-        </div>
+    <div class="controls">
+      <input id="input" placeholder="Type strategy...">
+      <button onclick="send()">Explain</button>
     </div>
+  </div>
 </div>
 
 <script>
-    const initialBoard = [
-        ['bR','bN','bB','bQ','bK','bB','bN','bR'],
-        ['bP','bP','bP','bP','bP','bP','bP','bP'],
-        ['','','','','','','',''],
-        ['','','','','','','',''],
-        ['','','','','','','',''],
-        ['','','','','','','',''],
-        ['wP','wP','wP','wP','wP','wP','wP','wP'],
-        ['wR','wN','wB','wQ','wK','wB','wN','wR']
-    ];
+const initial = [
+  ['♜','♞','♝','♛','♚','♝','♞','♜'],
+  ['♟','♟','♟','♟','♟','♟','♟','♟'],
+  ['','','','','','','',''],
+  ['','','','','','','',''],
+  ['','','','','','','',''],
+  ['','','','','','','',''],
+  ['♙','♙','♙','♙','♙','♙','♙','♙'],
+  ['♖','♘','♗','♕','♔','♗','♘','♖']
+];
 
-    let currentBoard = JSON.parse(JSON.stringify(initialBoard));
-    let selectedSquare = null;
-    let recognition = null;
-    let isListening = false;
+const colors = {
+  '♜':'b','♞':'b','♝':'b','♛':'b','♚':'b','♟':'b',
+  '♖':'w','♘':'w','♗':'w','♕':'w','♔':'w','♙':'w'
+};
 
-    function getPieceImgUrl(code) {
-        if (!code) return '';
-        const color = code[0];
-        const type = code[1];
-        return `https://chessboardjs.com{color}${type}.png`;
+let grid = JSON.parse(JSON.stringify(initial));
+let active = null;
+
+function render() {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  for(let r=0; r<8; r++) {
+    for(let c=0; c<8; c++) {
+      const sq = document.createElement('div');
+      sq.className = `square ${(r+c)%2===0?'light':'dark'}`;
+      if(active && active.r===r && active.c===c) {
+        sq.classList.add('selected');
+      }
+      const sym = grid[r][c];
+      if(sym) {
+        const p = document.createElement('span');
+        p.className = `piece ${colors[sym]==='w'?'white-piece':'black-piece'}`;
+        p.innerText = sym;
+        sq.appendChild(p);
+      }
+      sq.onclick = () => clickSquare(r,c);
+      el.appendChild(sq);
     }
+  }
+}
 
-    function renderNativeBoard() {
-        const boardEl = document.getElementById('htmlBoard');
-        boardEl.innerHTML = '';
-        
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const square = document.createElement('div');
-                const isLight = (r + c) % 2 === 0;
-                square.className = `square ${isLight ? 'light' : 'dark'}`;
-                
-                if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
-                    square.classList.add('selected');
-                }
-                
-                const pieceCode = currentBoard[r][c];
-                if (pieceCode) {
-                    const img = document.createElement('img');
-                    img.src = getPieceImgUrl(pieceCode);
-                    img.className = 'piece-img';
-                    square.appendChild(img);
-                }
-                
-                square.onclick = () => handleSquareClick(r, c);
-                boardEl.appendChild(square);
-            }
-        }
+function clickSquare(r,c) {
+  const sym = grid[r][c];
+  if(active) {
+    if(active.r!==r || active.c!==c) {
+      grid[r][c] = grid[active.r][active.c];
+      grid[active.r][active.c] = '';
+      active = null;
+      render();
+      setTimeout(reply, 600);
+    } else {
+      active = null;
+      render();
     }
-
-    function handleSquareClick(r, c) {
-        const piece = currentBoard[r][c];
-        
-        if (selectedSquare) {
-            if (selectedSquare.r !== r || selectedSquare.c !== c) {
-                currentBoard[r][c] = currentBoard[selectedSquare.r][selectedSquare.c];
-                currentBoard[selectedSquare.r][selectedSquare.c] = '';
-                selectedSquare = null;
-                renderNativeBoard();
-                
-                setTimeout(() => {
-                    appendChat('coach', "Interesting choice. That changes the tension in the center. Let's see how the defense repositions.");
-                    simulateBlackResponse();
-                }, 600);
-            } else {
-                selectedSquare = null;
-                renderNativeBoard();
-            }
-        } else {
-            if (piece && piece.startsWith('w')) {
-                selectedSquare = { r, c };
-                renderNativeBoard();
-            }
-        }
+  } else {
+    if(sym && colors[sym]==='w') {
+      active = {r,c};
+      render();
     }
+  }
+}
 
-    function simulateBlackResponse() {
-        for (let r = 1; r < 7; r++) {
-            for (let c = 0; c < 8; c++) {
-                if (currentBoard[r][c] && currentBoard[r][c].startsWith('b')) {
-                    if (currentBoard[r+1] && currentBoard[r+1][c] === '') {
-                        currentBoard[r+1][c] = currentBoard[r][c];
-                        currentBoard[r][c] = '';
-                        renderNativeBoard();
-                        return;
-                    }
-                }
-            }
-        }
+function reply() {
+  addMsg('Coach', 'Good development. Let me move.', '#81c784');
+  for(let r=1; r<7; r++) {
+    for(let c=0; c<8; c++) {
+      const sym = grid[r][c];
+      if(sym && colors[sym]==='b' && grid[r+1][c]==='') {
+        grid[r+1][c] = grid[r][c];
+        grid[r][c] = '';
+        render();
+        return;
+      }
     }
+  }
+}
 
-    function initVoice() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            document.getElementById('micBtn').style.display = 'none';
-            return;
-        }
-        recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.lang = 'en-US';
+function send() {
+  const txt = document.getElementById('input').value.trim();
+  if(!txt) return;
+  addMsg('You', txt, '#64b5f6');
+  document.getElementById('input').value = '';
+  setTimeout(() => {
+    addMsg('Coach', 'Logical strategic plan.', '#81c784');
+  }, 600);
+}
 
-        recognition.onstart = () => {
-            isListening = true;
-            document.getElementById('micBtn').classList.add('listening');
-        };
-        recognition.onend = () => {
-            isListening = false;
-            document.getElementById('micBtn').classList.remove('listening');
-        };
-        recognition.onresult = (event) => {
-            document.getElementById('playerInput').value = event.results[0][0].transcript;
-            sendPlayerIdea();
-        };
-    }
+function addMsg(user, txt, col) {
+  const box = document.getElementById('chat');
+  box.innerHTML += `<p style="color:${col}"><strong>${user}:</strong> ${txt}</p>`;
+  box.scrollTop = box.scrollHeight;
+}
 
-    function toggleVoice() {
-        if (!recognition) return;
-        if (isListening) recognition.stop(); else recognition.start();
-    }
-
-    function sendPlayerIdea() {
-        const inputEl = document.getElementById('playerInput');
-        const ideaText = inputEl.value.trim();
-        if (!ideaText) return;
-
-        appendChat('player', ideaText);
-        inputEl.value = '';
-
-        setTimeout(() => {
-            appendChat('coach', `Analyzing strategic intent: "${ideaText}". Your plan is structurally logical. Controlling these central operational lanes will make your endgame much easier.`);
-        }, 800);
-    }
-
-    function appendChat(sender, text) {
-        const box = document.getElementById('chatBox');
-        const label = sender === 'coach' ? 'Coach' : 'You';
-        box.innerHTML += `<div class="msg ${sender}"><strong>${label}:</strong> ${text}</div>`;
-        box.scrollTop = box.scrollHeight;
-    }
-
-    window.onload = function() {
-        renderNativeBoard();
-        initVoice();
-    };
+window.onload = render;
 </script>
 </body>
 </html>
