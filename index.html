@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chess Coach Training Room</title>
+    <link rel="stylesheet" href="https://cloudflare.com">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            max-width: 1100px;
+            width: 100%;
+        }
+        .board-section {
+            flex: 1.2;
+            min-width: 320px;
+        }
+        .coach-section {
+            flex: 1;
+            min-width: 320px;
+            background-color: #262626;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .engine-status {
+            background-color: #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            color: #a0a0a0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .chat-box {
+            flex: 1;
+            min-height: 300px;
+            max-height: 450px;
+            overflow-y: auto;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #121212;
+            margin-bottom: 15px;
+        }
+        .msg { margin-bottom: 12px; line-height: 1.4; }
+        .msg.coach { color: #81c784; }
+        .msg.player { color: #64b5f6; }
+        .msg.system { color: #e57373; font-style: italic; }
+        
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: #fff;
+            font-size: 1em;
+        }
+        button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-send { background-color: #4caf50; color: white; }
+        .btn-send:hover { background-color: #388e3c; }
+        .btn-mic { background-color: #0288d1; color: white; }
+        .btn-mic:hover { background-color: #01579b; }
+        .btn-mic.listening { background-color: #d32f2f; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="board-section">
+        <h2>🧠 AI Coach Training Room</h2>
+        <div id="chessBoard" style="width: 100%"></div>
+    </div>
+
+    <div class="coach-section">
+        <h3>💬 Assistant Coach & Engine</h3>
+        <div class="engine-status">
+            <span>Engine: <strong id="engineState">Loading Stockfish...</strong></span>
+            <span id="posEval">Eval: 0.00</span>
+        </div>
+        <div class="chat-box" id="chatBox">
+            <div class="msg coach"><strong>Coach:</strong> Hello! Pick up a piece to move, or click the 🎙️ mic to tell me your plan before you play it!</div>
+        </div>
+        <div class="controls">
+            <input type="text" id="playerInput" placeholder="Type your idea or click Mic...">
+            <button class="btn-mic" id="micBtn" onclick="toggleVoice()">🎙️</button>
+            <button class="btn-send" onclick="sendPlayerIdea()">Explain</button>
+        </div>
+    </div>
+</div>
+
+<!-- Load Board and Game Rules Engine dependencies -->
+<script src="https://jquery.com"></script>
+<script src="https://cloudflare.com"></script>
+<script src="https://cloudflare.com"></script>
+
+<script>
+    const game = new Chess();
+    let board = null;
+    let stockfish = null;
+    let recognition = null;
+    let isListening = false;
+    let bestMove = "";
+    let currentEval = "0.00";
+
+    // 1. Initialize Stockfish Engine inside Browser via open-source CDN
+    function initStockfish() {
+        try {
+            stockfish = new Worker('https://cloudflare.com');
+            
+            stockfish.onmessage = function(event) {
+                const line = event.data;
+                
+                // Parse score evaluation
+                if (line.includes("score cp")) {
+                    const cp = parseInt(line.split("score cp ")[1]);
+                    currentEval = (cp / 100).toFixed(2);
+                    document.getElementById('posEval').innerText = "Eval: " + (cp > 0 ? "+" : "") + currentEval;
+                }
+                
+                // Parse best engine calculated move
+                if (line.includes("bestmove")) {
+                    bestMove = line.split("bestmove ")[1].split(" ")[0];
+                    document.getElementById('engineState').innerText = "Ready";
+                }
+            };
+
+            stockfish.postMessage('uci');
+            stockfish.postMessage('isready');
+            updateEngineAnalysis();
+        } catch(e) {
+            document.getElementById('engineState').innerText = "Local Simulation Mode";
+        }
+    }
+
+    function updateEngineAnalysis() {
+        if (!stockfish) return;
+        stockfish.postMessage('position fen ' + game.fen());
+        stockfish.postMessage('go depth 12'); // Fast calculation depth
+    }
+
+    // 2. Setup Speech to Text (Voice Recognition)
+    function initVoice() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            document.getElementById('micBtn').style.display = 'none';
+            return;
+        }
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            isListening = true;
+            document.getElementById('micBtn').classList.add('listening');
+        };
+
+        recognition.onend = () => {
+            isListening = false;
+            document.getElementById('micBtn').classList.remove('listening');
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('playerInput').value = transcript;
+            sendPlayerIdea(); // Evaluate automatically after speaking
+        };
+    }
+
+    function toggleVoice() {
+        if (!recognition) return;
+        if (isListening) {
+            recognition.stop();
+        } else {
+            recognition.start();
+        }
+    }
+
+    // 3. Game Logic Interaction
+    function onDragStart (source, piece, position, orientation) {
+        if (game.game_over()) return false;
+        if (piece.search(/^b/) !== -1) return false; // Player is white
+    }
+
+    function onDrop (source, target) {
+        const moveAttempt = source + target;
+        
+        // Formulate a rule move
+        const move = game.move({
+            from: source,
+            to: target,
+            promotion: 'q'
+        });
+
+        if (move === null) return 'snapback';
+
+        // Evaluate your executed physical move vs engine recommendation
+        setTimeout(() => {
+            if (bestMove && moveAttempt !== bestMove) {
+                appendChat('coach', `You played ${move.san}. The Stockfish engine actually preferred tactical lane ${bestMove}. Consider what positional advantages that might have offered.`);
+            } else {
+                appendChat('coach', `Excellent choice! Playing ${move.san} aligns perfectly with the engine's current top choice.`);
+            }
+            updateEngineAnalysis();
+            
+            // Trigger automatic simple computer response
+            makeComputerMove();
+        }, 500);
+    }
+
+    function makeComputerMove() {
+        if (game.game_over()) return;
+        const moves = game.moves();
+        const randomMove = moves[Math.floor(Math.random() * moves.length)];
+        game.move(randomMove);
+        board.position(game.fen());
+        updateEngineAnalysis();
+    }
+
+    function sendPlayerIdea() {
+        const inputEl = document.getElementById('playerInput');
+        const ideaText = inputEl.value.trim();
+        if (!ideaText) return;
+
+        appendChat('player', ideaText);
+        inputEl.value = '';
+
+        // Simulating the Local Coach reasoning block combining user concept strategy with Engine data
+        setTimeout(() => {
+            appendChat('coach', `Analyzing intent: "${ideaText}". Stockfish currently assesses the table balance at ${currentEval}. Keeping tactical emphasis around target squared layouts will preserve this advantage.`);
+        }, 800);
+    }
+
+    function appendChat(sender, text) {
+        const box = document.getElementById('chatBox');
+        const label = sender === 'coach' ? 'Coach' : 'You';
+        box.innerHTML += `<div class="msg ${sender}"><strong>${label}:</strong> ${text}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // Run Setup when window completes structure builds
+    window.onload = function() {
+        board = Chessboard('chessBoard', {
+            draggable: true,
+            position: 'start',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: () => board.position(game.fen())
+        });
+        initStockfish();
+        initVoice();
+    };
