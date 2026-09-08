@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chess Coach Training Room</title>
-    <!-- Combined styles for a native, reliable layout -->
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: #ffffff;
+            background-color: #161512;
+            color: #bababa;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -31,7 +30,6 @@
             flex-direction: column;
             align-items: center;
         }
-        /* Pure CSS Chessboard structure to bypass external file errors */
         .grid-board {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -39,40 +37,46 @@
             width: 100%;
             max-width: 460px;
             aspect-ratio: 1;
-            border: 6px solid #333;
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            border: 4px solid #262421;
+            border-radius: 3px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
         }
         .square {
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2.2em;
+            position: relative;
             cursor: pointer;
             user-select: none;
-            transition: background 0.1s;
         }
         .square.light { background-color: #f0d9b5; }
         .square.dark { background-color: #b58863; }
-        .square.selected { background-color: #7a9a60 !important; }
+        .square.selected { background-color: rgba(130, 151, 105, 0.7) !important; }
         
+        .piece-img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
         .coach-section {
             flex: 1;
             min-width: 320px;
-            background-color: #262626;
-            border-radius: 12px;
+            background-color: #1e1e1c;
+            border: 1px solid #2d2b28;
+            border-radius: 8px;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
         .engine-status {
-            background-color: #333;
+            background-color: #262421;
             padding: 8px 12px;
-            border-radius: 6px;
+            border-radius: 4px;
             font-size: 0.9em;
             margin-bottom: 15px;
-            color: #a0a0a0;
+            color: #bababa;
             display: flex;
             justify-content: space-between;
         }
@@ -81,15 +85,15 @@
             min-height: 280px;
             max-height: 400px;
             overflow-y: auto;
-            border: 1px solid #404040;
-            border-radius: 8px;
+            border: 1px solid #2d2b28;
+            border-radius: 6px;
             padding: 15px;
-            background-color: #121212;
+            background-color: #161512;
             margin-bottom: 15px;
         }
         .msg { margin-bottom: 12px; line-height: 1.4; }
-        .msg.coach { color: #81c784; }
-        .msg.player { color: #64b5f6; }
+        .msg.coach { color: #bf8142; }
+        .msg.player { color: #4fa3a5; }
         
         .controls {
             display: flex;
@@ -98,22 +102,22 @@
         input[type="text"] {
             flex: 1;
             padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #444;
-            background-color: #333;
+            border-radius: 4px;
+            border: 1px solid #3d3a35;
+            background-color: #262421;
             color: #fff;
             font-size: 1em;
         }
         button {
             padding: 12px 18px;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             font-weight: bold;
             cursor: pointer;
         }
-        .btn-send { background-color: #4caf50; color: white; }
-        .btn-mic { background-color: #0288d1; color: white; }
-        .btn-mic.listening { background-color: #d32f2f; }
+        .btn-send { background-color: #e69138; color: white; }
+        .btn-mic { background-color: #45818e; color: white; }
+        .btn-mic.listening { background-color: #cc0000; }
     </style>
 </head>
 <body>
@@ -121,19 +125,18 @@
 <div class="container">
     <div class="board-section">
         <h2>🧠 AI Coach Training Room</h2>
-        <!-- Native grid board -->
         <div id="htmlBoard" class="grid-board"></div>
-        <p style="color: #aaa; margin-top: 10px; font-size: 0.9em;">Click a piece, then click a target square to move.</p>
+        <p style="color: #666; margin-top: 12px; font-size: 0.9em;">Click your piece, then click the destination square to move.</p>
     </div>
 
     <div class="coach-section">
-        <h3>💬 Assistant Coach & Evaluation</h3>
+        <h3>💬 Assistant Coach</h3>
         <div class="engine-status">
             <span>Coach Mind: <strong>Active</strong></span>
             <span id="posEval">Eval: +0.15</span>
         </div>
         <div class="chat-box" id="chatBox">
-            <div class="msg coach"><strong>Coach:</strong> Interface connected natively! Click a white pawn or piece to start, or type your strategy concept below.</div>
+            <div class="msg coach"><strong>Coach:</strong> UI updated with official Lichess graphics! Propose an idea or try making a development move.</div>
         </div>
         <div class="controls">
             <input type="text" id="playerInput" placeholder="Type your idea or click Mic...">
@@ -144,16 +147,15 @@
 </div>
 
 <script>
-    // Built-in simplified chess simulator engine map
     const initialBoard = [
-        ['♜','♞','♝','♛','♚','♝','♞','♜'],
-        ['♟','♟','♟','♟','♟','♟','♟','♟'],
+        ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+        ['bP','bP','bP','bP','bP','bP','bP','bP'],
         ['','','','','','','',''],
         ['','','','','','','',''],
         ['','','','','','','',''],
         ['','','','','','','',''],
-        ['♙','♙','♙','♙','♙','♙','♙','♙'],
-        ['♖','♘','♗','♕','♔','♗','♘','♖']
+        ['wP','wP','wP','wP','wP','wP','wP','wP'],
+        ['wR','wN','wB','wQ','wK','wB','wN','wR']
     ];
 
     let currentBoard = JSON.parse(JSON.stringify(initialBoard));
@@ -161,7 +163,13 @@
     let recognition = null;
     let isListening = false;
 
-    // Build the board programmatically using standard grid elements and unicode chess assets
+    function getPieceImgUrl(code) {
+        if (!code) return '';
+        const color = code[0];
+        const type = code[1];
+        return `https://chessboardjs.com{color}${type}.png`;
+    }
+
     function renderNativeBoard() {
         const boardEl = document.getElementById('htmlBoard');
         boardEl.innerHTML = '';
@@ -176,7 +184,14 @@
                     square.classList.add('selected');
                 }
                 
-                square.innerText = currentBoard[r][c];
+                const pieceCode = currentBoard[r][c];
+                if (pieceCode) {
+                    const img = document.createElement('img');
+                    img.src = getPieceImgUrl(pieceCode);
+                    img.className = 'piece-img';
+                    square.appendChild(img);
+                }
+                
                 square.onclick = () => handleSquareClick(r, c);
                 boardEl.appendChild(square);
             }
@@ -187,16 +202,14 @@
         const piece = currentBoard[r][c];
         
         if (selectedSquare) {
-            // Move piece to the new target
             if (selectedSquare.r !== r || selectedSquare.c !== c) {
                 currentBoard[r][c] = currentBoard[selectedSquare.r][selectedSquare.c];
                 currentBoard[selectedSquare.r][selectedSquare.c] = '';
                 selectedSquare = null;
                 renderNativeBoard();
                 
-                // Trigger AI Feedback response
                 setTimeout(() => {
-                    appendChat('coach', "Good move! That development strengthens your position. Let's see how the black pieces react.");
+                    appendChat('coach', "Interesting choice. That changes the tension in the center. Let's see how the defense repositions.");
                     simulateBlackResponse();
                 }, 600);
             } else {
@@ -204,8 +217,7 @@
                 renderNativeBoard();
             }
         } else {
-            // Select piece if it's not empty
-            if (piece !== '') {
+            if (piece && piece.startsWith('w')) {
                 selectedSquare = { r, c };
                 renderNativeBoard();
             }
@@ -213,10 +225,9 @@
     }
 
     function simulateBlackResponse() {
-        // Find a black piece and move it randomly down for active layout gameplay
         for (let r = 1; r < 7; r++) {
             for (let c = 0; c < 8; c++) {
-                if (['♜','♞','♝','♛','♚','♟'].includes(currentBoard[r][c])) {
+                if (currentBoard[r][c] && currentBoard[r][c].startsWith('b')) {
                     if (currentBoard[r+1] && currentBoard[r+1][c] === '') {
                         currentBoard[r+1][c] = currentBoard[r][c];
                         currentBoard[r][c] = '';
@@ -228,7 +239,6 @@
         }
     }
 
-    // Voice recognition activation logic
     function initVoice() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
