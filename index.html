@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chess Coach Training Room</title>
-    <!-- Stable styles and dependencies -->
-    <link rel="stylesheet" href="https://cloudflare.com">
+    <!-- Combined styles for a native, reliable layout -->
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -28,7 +27,35 @@
         .board-section {
             flex: 1.2;
             min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
+        /* Pure CSS Chessboard structure to bypass external file errors */
+        .grid-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            max-width: 460px;
+            aspect-ratio: 1;
+            border: 6px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2em;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.1s;
+        }
+        .square.light { background-color: #f0d9b5; }
+        .square.dark { background-color: #b58863; }
+        .square.selected { background-color: #7a9a60 !important; }
+        
         .coach-section {
             flex: 1;
             min-width: 320px;
@@ -51,8 +78,8 @@
         }
         .chat-box {
             flex: 1;
-            min-height: 300px;
-            max-height: 450px;
+            min-height: 280px;
+            max-height: 400px;
             overflow-y: auto;
             border: 1px solid #404040;
             border-radius: 8px;
@@ -94,18 +121,19 @@
 <div class="container">
     <div class="board-section">
         <h2>🧠 AI Coach Training Room</h2>
-        <!-- Built-in fallback chessboard visual structure -->
-        <div id="chessBoard" style="width: 100%; max-width: 500px; background: #404040; border-radius: 8px; border: 4px solid #333;"></div>
+        <!-- Native grid board -->
+        <div id="htmlBoard" class="grid-board"></div>
+        <p style="color: #aaa; margin-top: 10px; font-size: 0.9em;">Click a piece, then click a target square to move.</p>
     </div>
 
     <div class="coach-section">
         <h3>💬 Assistant Coach & Evaluation</h3>
         <div class="engine-status">
-            <span>Coach Mind: <strong id="engineState">Active</strong></span>
-            <span id="posEval">Eval: +0.20</span>
+            <span>Coach Mind: <strong>Active</strong></span>
+            <span id="posEval">Eval: +0.15</span>
         </div>
         <div class="chat-box" id="chatBox">
-            <div class="msg coach"><strong>Coach:</strong> Board loaded! Make a move on the board, or type your tactical thought below. I will grade your choice!</div>
+            <div class="msg coach"><strong>Coach:</strong> Interface connected natively! Click a white pawn or piece to start, or type your strategy concept below.</div>
         </div>
         <div class="controls">
             <input type="text" id="playerInput" placeholder="Type your idea or click Mic...">
@@ -115,21 +143,92 @@
     </div>
 </div>
 
-<script src="https://jquery.com"></script>
-<script src="https://cloudflare.com"></script>
-<script src="https://cloudflare.com"></script>
-
 <script>
-    const game = new Chess();
-    let board = null;
+    // Built-in simplified chess simulator engine map
+    const initialBoard = [
+        ['♜','♞','♝','♛','♚','♝','♞','♜'],
+        ['♟','♟','♟','♟','♟','♟','♟','♟'],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['♙','♙','♙','♙','♙','♙','♙','♙'],
+        ['♖','♘','♗','♕','♔','♗','♘','♖']
+    ];
+
+    let currentBoard = JSON.parse(JSON.stringify(initialBoard));
+    let selectedSquare = null;
     let recognition = null;
     let isListening = false;
 
-    // Use a solid public imagery source for pieces to prevent network dropping
-    function imgPiece(piece) {
-        return 'https://chessboardjs.com' + piece + '.png';
+    // Build the board programmatically using standard grid elements and unicode chess assets
+    function renderNativeBoard() {
+        const boardEl = document.getElementById('htmlBoard');
+        boardEl.innerHTML = '';
+        
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const square = document.createElement('div');
+                const isLight = (r + c) % 2 === 0;
+                square.className = `square ${isLight ? 'light' : 'dark'}`;
+                
+                if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
+                    square.classList.add('selected');
+                }
+                
+                square.innerText = currentBoard[r][c];
+                square.onclick = () => handleSquareClick(r, c);
+                boardEl.appendChild(square);
+            }
+        }
     }
 
+    function handleSquareClick(r, c) {
+        const piece = currentBoard[r][c];
+        
+        if (selectedSquare) {
+            // Move piece to the new target
+            if (selectedSquare.r !== r || selectedSquare.c !== c) {
+                currentBoard[r][c] = currentBoard[selectedSquare.r][selectedSquare.c];
+                currentBoard[selectedSquare.r][selectedSquare.c] = '';
+                selectedSquare = null;
+                renderNativeBoard();
+                
+                // Trigger AI Feedback response
+                setTimeout(() => {
+                    appendChat('coach', "Good move! That development strengthens your position. Let's see how the black pieces react.");
+                    simulateBlackResponse();
+                }, 600);
+            } else {
+                selectedSquare = null;
+                renderNativeBoard();
+            }
+        } else {
+            // Select piece if it's not empty
+            if (piece !== '') {
+                selectedSquare = { r, c };
+                renderNativeBoard();
+            }
+        }
+    }
+
+    function simulateBlackResponse() {
+        // Find a black piece and move it randomly down for active layout gameplay
+        for (let r = 1; r < 7; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (['♜','♞','♝','♛','♚','♟'].includes(currentBoard[r][c])) {
+                    if (currentBoard[r+1] && currentBoard[r+1][c] === '') {
+                        currentBoard[r+1][c] = currentBoard[r][c];
+                        currentBoard[r][c] = '';
+                        renderNativeBoard();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // Voice recognition activation logic
     function initVoice() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
@@ -159,29 +258,6 @@
         if (isListening) recognition.stop(); else recognition.start();
     }
 
-    function onDragStart (source, piece, position, orientation) {
-        if (game.game_over()) return false;
-        if (piece.search(/^b/) !== -1) return false;
-    }
-
-    function onDrop (source, target) {
-        const move = game.move({ from: source, to: target, promotion: 'q' });
-        if (move === null) return 'snapback';
-
-        setTimeout(() => {
-            appendChat('coach', `You played ${move.san}. I like this idea—it fights for control of the board. Let's see how the defense responds.`);
-            makeComputerMove();
-        }, 500);
-    }
-
-    function makeComputerMove() {
-        if (game.game_over()) return;
-        const moves = game.moves();
-        const randomMove = moves[Math.floor(Math.random() * moves.length)];
-        game.move(randomMove);
-        board.position(game.fen());
-    }
-
     function sendPlayerIdea() {
         const inputEl = document.getElementById('playerInput');
         const ideaText = inputEl.value.trim();
@@ -191,7 +267,7 @@
         inputEl.value = '';
 
         setTimeout(() => {
-            appendChat('coach', `Regarding your idea: "${ideaText}"—this is solid strategy. Keeping tactical piece coordinates active prevents threats from building up.`);
+            appendChat('coach', `Analyzing strategic intent: "${ideaText}". Your plan is structurally logical. Controlling these central operational lanes will make your endgame much easier.`);
         }, 800);
     }
 
@@ -203,14 +279,7 @@
     }
 
     window.onload = function() {
-        board = Chessboard('chessBoard', {
-            draggable: true,
-            position: 'start',
-            pieceTheme: imgPiece, // Explicitly point to secure piece layouts
-            onDragStart: onDragStart,
-            onDrop: onDrop,
-            onSnapEnd: () => board.position(game.fen())
-        });
+        renderNativeBoard();
         initVoice();
     };
 </script>
